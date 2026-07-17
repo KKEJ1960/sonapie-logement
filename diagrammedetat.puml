@@ -1,0 +1,19 @@
+@startuml
+skinparam backgroundColor white
+skinparam stateBackgroundColor #f0f8ff
+
+[*] --> Soumise : Agent soumet la demande
+
+Soumise --> EnEtude : Admin prend en charge
+Soumise --> Annulée : Agent annule
+
+EnEtude --> Approuvée : Admin approuve\n+ logement disponible
+EnEtude --> Rejetée : Admin rejette\nou aucun logement
+EnEtude --> Soumise : Dossier incomplet
+
+Approuvée --> LogementAttribué : Occupation créée
+Rejetée --> [*]
+Annulée --> [*]
+LogementAttribué --> [*]
+
+@enduml

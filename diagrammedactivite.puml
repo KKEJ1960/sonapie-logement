@@ -1,0 +1,41 @@
+@startuml
+skinparam backgroundColor white
+skinparam activityBackgroundColor #f0f8ff
+
+start
+
+:Agent soumet une demande de logement;
+:Système enregistre la demande (statut: soumise);
+:Notification envoyée à l'administrateur;
+
+:Administrateur consulte la demande;
+
+if (Dossier complet ?) then (Non)
+    :Demande de documents complémentaires;
+    :Agent complète le dossier;
+else (Oui)
+endif
+
+:Administrateur étudie la demande;
+
+if (Logement disponible ?) then (Non)
+    :Demande mise en liste d'attente;
+    stop
+else (Oui)
+endif
+
+if (Demande approuvée ?) then (Non)
+    :Statut → Rejetée;
+    :Notification de rejet à l'agent;
+    stop
+else (Oui)
+endif
+
+:Administrateur attribue un logement;
+:Statut demande → Approuvée;
+:Statut logement → Occupé;
+:Création de l'occupation;
+:Notification d'approbation à l'agent;
+
+stop
+@enduml

@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+
+actor "Agent" as Agent
+participant "Interface React" as UI
+participant "API Node.js" as API
+participant "Base de données" as DB
+participant "Notification" as NOTIF
+
+Agent -> UI : Remplit le formulaire de demande
+UI -> API : POST /api/demandes
+API -> DB : Vérifie les infos de l'agent
+DB --> API : Agent valide
+API -> DB : Enregistre la demande (statut: soumise)
+DB --> API : Demande créée
+API -> NOTIF : Notifie l'administrateur
+NOTIF --> API : Notification envoyée
+API --> UI : 201 Created
+UI --> Agent : "Demande soumise avec succès"
+
+== Traitement par l'administrateur ==
+
+actor "Administrateur" as Admin
+Admin -> UI : Consulte les demandes en attente
+UI -> API : GET /api/demandes?statut=soumise
+API -> DB : Récupère les demandes
+DB --> API : Liste des demandes
+API --> UI : Données
+UI --> Admin : Affiche les demandes
+
+Admin -> UI : Approuve la demande + attribue logement
+UI -> API : PUT /api/demandes/:id/approuver
+API -> DB : Met à jour statut demande → approuvée
+API -> DB : Crée une occupation
+API -> DB : Met à jour statut logement → occupé
+DB --> API : OK
+API -> NOTIF : Notifie l'agent
+NOTIF --> API : OK
+API --> UI : 200 OK
+UI --> Admin : "Demande approuvée"
+
+@enduml

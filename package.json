@@ -1,0 +1,16 @@
+{
+  "name": "sonapie",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Projet fullstack SONAPIE avec React, Vite, Express, PostgreSQL, Prisma et JWT.",
+  "scripts": {
+    "dev": "node dev.js",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "ip": "node -e \"const os=require('os'); Object.values(os.networkInterfaces()).flat().filter(i=>i&&i.family==='IPv4'&&!i.internal).forEach(i=>console.log('IP Reseau: http://'+i.address+':5173'))\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

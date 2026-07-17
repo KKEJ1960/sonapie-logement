@@ -1,0 +1,58 @@
+@startuml
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+
+actor "Occupant" as Occupant
+participant "Interface React" as UI
+participant "API Node.js" as API
+participant "Base de données" as DB
+participant "Notification" as NOTIF
+
+Occupant -> UI : Décrit le problème + soumet ticket
+UI -> API : POST /api/tickets
+API -> DB : Enregistre le ticket (statut: soumis)
+DB --> API : Ticket créé
+API -> NOTIF : Notifie le responsable technique
+NOTIF --> API : OK
+API --> UI : 201 Created
+UI --> Occupant : "Ticket soumis avec succès"
+
+== Assignation par le responsable ==
+
+actor "Responsable" as RT
+RT -> UI : Consulte les tickets en attente
+UI -> API : GET /api/tickets?statut=soumis
+API -> DB : Récupère les tickets
+DB --> API : Liste
+API --> UI : Données
+UI --> RT : Affiche les tickets
+
+RT -> UI : Assigne le ticket à un technicien
+UI -> API : PUT /api/tickets/:id/assigner
+API -> DB : Met à jour statut → assigné
+API -> DB : Crée une intervention
+DB --> API : OK
+API -> NOTIF : Notifie le technicien
+API -> NOTIF : Notifie l'occupant
+NOTIF --> API : OK
+API --> UI : 200 OK
+
+== Exécution par le technicien ==
+
+actor "Technicien" as Tech
+Tech -> UI : Démarre l'intervention
+UI -> API : PUT /api/interventions/:id/demarrer
+API -> DB : statut → en_cours
+DB --> API : OK
+API --> UI : OK
+
+Tech -> UI : Clôture l'intervention + rapport
+UI -> API : PUT /api/interventions/:id/cloturer
+API -> DB : statut → terminée
+API -> DB : Ticket → clôturé
+DB --> API : OK
+API -> NOTIF : Notifie l'occupant et le responsable
+API --> UI : 200 OK
+UI --> Tech : "Intervention clôturée"
+
+@enduml

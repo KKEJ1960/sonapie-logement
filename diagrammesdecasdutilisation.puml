@@ -1,0 +1,88 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Administrateur" as Admin
+actor "Agent Demandeur" as Agent
+actor "Responsable Technique" as RT
+actor "Technicien" as Tech
+
+rectangle "Système de Gestion SONAPIE" {
+
+    ' === GESTION DES LOGEMENTS ===
+    package "Gestion des Logements" {
+        usecase "Ajouter un logement" as UC1
+        usecase "Modifier un logement" as UC2
+        usecase "Consulter les logements" as UC3
+        usecase "Suivre l'occupation" as UC4
+    }
+
+    ' === DEMANDES DE LOGEMENT ===
+    package "Demandes de Logement" {
+        usecase "Soumettre une demande" as UC5
+        usecase "Traiter une demande" as UC6
+        usecase "Attribuer un logement" as UC7
+        usecase "Consulter ses demandes" as UC8
+    }
+
+    ' === MUTATIONS ===
+    package "Gestion des Mutations" {
+        usecase "Demander une mutation" as UC9
+        usecase "Traiter une mutation" as UC10
+    }
+
+    ' === MAINTENANCE ===
+    package "Maintenance & Interventions" {
+        usecase "Soumettre un ticket" as UC11
+        usecase "Assigner une intervention" as UC12
+        usecase "Suivre ses interventions" as UC13
+        usecase "Clôturer une intervention" as UC14
+    }
+
+    ' === TABLEAU DE BORD ===
+    package "Tableau de Bord" {
+        usecase "Voir les statistiques" as UC15
+        usecase "Exporter un rapport PDF" as UC16
+    }
+
+    ' === AUTH ===
+    package "Authentification" {
+        usecase "Se connecter" as UC0
+        usecase "Gérer les utilisateurs" as UC17
+    }
+}
+
+' === RELATIONS ADMINISTRATEUR ===
+Admin --> UC0
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+Admin --> UC6
+Admin --> UC7
+Admin --> UC10
+Admin --> UC12
+Admin --> UC15
+Admin --> UC16
+Admin --> UC17
+
+' === RELATIONS AGENT ===
+Agent --> UC0
+Agent --> UC5
+Agent --> UC8
+Agent --> UC9
+Agent --> UC11
+
+' === RELATIONS RESPONSABLE TECHNIQUE ===
+RT --> UC0
+RT --> UC12
+RT --> UC13
+RT --> UC15
+
+' === RELATIONS TECHNICIEN ===
+Tech --> UC0
+Tech --> UC13
+Tech --> UC14
+
+@enduml

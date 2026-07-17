@@ -1,0 +1,117 @@
+@startuml
+!define TABLE(name,desc) class name as "desc" << (T,#FFAAAA) >>
+!define PK(x) <u>x</u>
+!define FK(x) <i>x</i>
+
+hide methods
+hide stereotypes
+skinparam backgroundColor white
+
+TABLE(utilisateurs, "utilisateurs") {
+    PK(id) INT AUTO_INCREMENT
+    nom VARCHAR(100)
+    prenom VARCHAR(100)
+    email VARCHAR(150) UNIQUE
+    mot_de_passe VARCHAR(255)
+    telephone VARCHAR(20)
+    role ENUM('admin','agent','responsable','technicien')
+    created_at TIMESTAMP
+}
+
+TABLE(logements, "logements") {
+    PK(id) INT AUTO_INCREMENT
+    code VARCHAR(50) UNIQUE
+    adresse TEXT
+    ville VARCHAR(100)
+    type ENUM('F1','F2','F3','F4','F5','villa')
+    superficie FLOAT
+    nombre_pieces INT
+    statut ENUM('disponible','occupé','maintenance')
+    etage INT
+    created_at TIMESTAMP
+}
+
+TABLE(demandes_logement, "demandes_logement") {
+    PK(id) INT AUTO_INCREMENT
+    FK(demandeur_id) INT
+    FK(logement_id) INT
+    motif TEXT
+    statut ENUM('soumise','en_etude','approuvée','rejetée')
+    priorite ENUM('normale','urgente')
+    date_depot TIMESTAMP
+    date_traitement TIMESTAMP
+    commentaire TEXT
+}
+
+TABLE(mutations, "mutations") {
+    PK(id) INT AUTO_INCREMENT
+    FK(demandeur_id) INT
+    FK(logement_actuel_id) INT
+    FK(logement_souhaite_id) INT
+    motif TEXT
+    statut ENUM('soumise','en_etude','approuvée','rejetée')
+    date_depot TIMESTAMP
+    date_traitement TIMESTAMP
+    commentaire TEXT
+}
+
+TABLE(tickets_maintenance, "tickets_maintenance") {
+    PK(id) INT AUTO_INCREMENT
+    FK(demandeur_id) INT
+    FK(logement_id) INT
+    titre VARCHAR(200)
+    description TEXT
+    priorite ENUM('basse','normale','haute','urgente')
+    statut ENUM('soumis','assigné','en_cours','clôturé')
+    date_depot TIMESTAMP
+    date_cloture TIMESTAMP
+}
+
+TABLE(interventions, "interventions") {
+    PK(id) INT AUTO_INCREMENT
+    FK(ticket_id) INT
+    FK(technicien_id) INT
+    description TEXT
+    statut ENUM('assignée','en_cours','terminée')
+    date_assignation TIMESTAMP
+    date_debut TIMESTAMP
+    date_fin TIMESTAMP
+    rapport TEXT
+}
+
+TABLE(occupations, "occupations") {
+    PK(id) INT AUTO_INCREMENT
+    FK(utilisateur_id) INT
+    FK(logement_id) INT
+    date_entree DATE
+    date_sortie DATE
+    statut ENUM('active','terminée')
+    actif BOOLEAN
+}
+
+TABLE(notifications, "notifications") {
+    PK(id) INT AUTO_INCREMENT
+    FK(utilisateur_id) INT
+    message TEXT
+    type ENUM('info','success','warning','error')
+    lu BOOLEAN
+    created_at TIMESTAMP
+}
+
+' === RELATIONS ===
+utilisateurs ||--o{ demandes_logement : "soumet"
+utilisateurs ||--o{ mutations : "demande"
+utilisateurs ||--o{ tickets_maintenance : "soumet"
+utilisateurs ||--o{ interventions : "réalise"
+utilisateurs ||--o{ occupations : "possède"
+utilisateurs ||--o{ notifications : "reçoit"
+
+logements ||--o{ demandes_logement : "concerne"
+logements ||--o{ mutations : "logement actuel"
+logements ||--o{ mutations : "logement souhaité"
+logements ||--o{ tickets_maintenance : "concerne"
+logements ||--o{ occupations : "fait l'objet"
+
+tickets_maintenance ||--o| interventions : "génère"
+
+@enduml

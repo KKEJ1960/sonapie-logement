@@ -1,0 +1,115 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam backgroundColor white
+
+class Utilisateur {
+    +id: INT
+    +nom: STRING
+    +prenom: STRING
+    +email: STRING
+    +motDePasse: STRING
+    +telephone: STRING
+    +role: ENUM
+    +createdAt: DATE
+    +seConnecter()
+    +seDeconnecter()
+}
+
+class Logement {
+    +id: INT
+    +code: STRING
+    +adresse: STRING
+    +ville: STRING
+    +type: ENUM
+    +superficie: FLOAT
+    +nombrePieces: INT
+    +statut: ENUM
+    +etage: INT
+    +createdAt: DATE
+    +getStatut()
+    +updateStatut()
+}
+
+class DemandeLogement {
+    +id: INT
+    +motif: TEXT
+    +statut: ENUM
+    +priorite: ENUM
+    +dateDepot: DATE
+    +dateTraitement: DATE
+    +commentaire: TEXT
+    +soumettre()
+    +annuler()
+}
+
+class Mutation {
+    +id: INT
+    +motif: TEXT
+    +statut: ENUM
+    +dateDepot: DATE
+    +dateTraitement: DATE
+    +commentaire: TEXT
+    +soumettre()
+    +traiter()
+}
+
+class TicketMaintenance {
+    +id: INT
+    +titre: STRING
+    +description: TEXT
+    +priorite: ENUM
+    +statut: ENUM
+    +dateDepot: DATE
+    +dateCloture: DATE
+    +soumettre()
+    +cloturer()
+}
+
+class Intervention {
+    +id: INT
+    +description: TEXT
+    +statut: ENUM
+    +dateAssignation: DATE
+    +dateDebut: DATE
+    +dateFin: DATE
+    +rapport: TEXT
+    +demarrer()
+    +cloturer()
+}
+
+class Occupation {
+    +id: INT
+    +dateEntree: DATE
+    +dateSortie: DATE
+    +statut: ENUM
+    +actif: BOOLEAN
+}
+
+class Notification {
+    +id: INT
+    +message: TEXT
+    +type: ENUM
+    +lu: BOOLEAN
+    +createdAt: DATE
+    +marquerLu()
+}
+
+' === RELATIONS ===
+Utilisateur "1" -- "0..*" DemandeLogement : soumet
+Utilisateur "1" -- "0..*" Mutation : demande
+Utilisateur "1" -- "0..*" TicketMaintenance : soumet
+Utilisateur "1" -- "0..*" Intervention : réalise
+Utilisateur "1" -- "0..*" Notification : reçoit
+Utilisateur "1" -- "0..*" Occupation : possède
+
+Logement "1" -- "0..*" DemandeLogement : concerne
+Logement "1" -- "0..*" Mutation : implique
+Logement "1" -- "0..*" TicketMaintenance : concerne
+Logement "1" -- "0..*" Occupation : fait l'objet
+
+TicketMaintenance "1" -- "0..1" Intervention : génère
+
+DemandeLogement "1" -- "0..1" Occupation : aboutit
+Mutation "1" -- "0..1" Occupation : génère
+
+@enduml

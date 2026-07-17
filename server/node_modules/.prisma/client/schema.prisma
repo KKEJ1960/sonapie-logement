@@ -1,0 +1,624 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  DIRECTION
+  LOCATAIRE
+  RESPONSABLE
+  TECHNICIEN
+  SERVICE_LOGEMENT
+}
+
+enum TypeLocataire {
+  PRIVE
+  FONCTIONNAIRE
+}
+
+enum TypeLogement {
+  F1
+  F2
+  F3
+  F4
+  F5
+  VILLA
+}
+
+enum StatutLogement {
+  DISPONIBLE
+  OCCUPE
+  MAINTENANCE
+}
+
+enum StatutDemande {
+  SOUMISE
+  EN_VALIDATION_DIRECTION
+  VALIDEE_DIRECTION
+  REJETEE_DIRECTION
+  EN_ETUDE_LOGEMENT
+  APPROUVEE
+  REJETEE
+  ANNULEE
+}
+
+enum Priorite {
+  BASSE
+  NORMALE
+  HAUTE
+  URGENTE
+}
+
+enum StatutTicket {
+  SOUMIS
+  CONSTAT_PROGRAMME
+  CONSTAT_EFFECTUE
+  PRISE_EN_CHARGE_LOCATAIRE
+  PRISE_EN_CHARGE_SONAPIE
+  EN_ATTENTE_CONFIRMATION_LOCATAIRE
+  ASSIGNE_TECHNICIEN
+  EN_COURS
+  VERIFICATION_SONAPIE
+  CLOTURE
+  REOUVERT
+}
+
+enum StatutIntervention {
+  ASSIGNEE
+  EN_COURS
+  TERMINEE
+}
+
+enum StatutOccupation {
+  ACTIVE
+  TERMINEE
+}
+
+enum TypeNotification {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum TypePhoto {
+  SIGNALEMENT
+  CONSTAT
+  AVANT_REPARATION
+  APRES_REPARATION
+}
+
+enum TypeDocument {
+  PIECE_IDENTITE
+  JUSTIFICATIF_DOMICILE
+  BAIL
+  QUITTANCE
+  AUTRE
+}
+
+enum TypePieceLogement {
+  SALON
+  CHAMBRE
+  CHAMBRE_PRINCIPALE
+  CHAMBRE_2
+  CHAMBRE_3
+  CUISINE
+  SALLE_DE_BAIN
+  TOILETTES
+  BALCON
+  TERRASSE
+  JARDIN
+  GARAGE
+  ENTREE
+  FACADE
+  AUTRE
+  AUTRES_ESPACES
+}
+
+enum ModePaiement {
+  ESPECES
+  MOBILE_MONEY
+  CHEQUE
+  PRELEVEMENT_SALAIRE
+}
+
+enum StatutPaiement {
+  EN_ATTENTE
+  PAYE
+  EN_RETARD
+  ANNULE
+}
+
+enum TypeAction {
+  CREATION
+  MODIFICATION
+  SUPPRESSION
+  VALIDATION
+  REJET
+  CONNEXION
+  DESACTIVATION
+  REACTIVATION
+  RESET_MOT_DE_PASSE
+}
+
+enum StatutConversation {
+  EN_ATTENTE
+  // Créée, en attente que Service Logement ouvre la discussion
+  ACTIVE
+  // En cours de discussion
+  TERMINEE
+  // Dossier finalisé
+  ARCHIVEE
+}
+
+enum TypeMessage {
+  TEXTE
+  DOCUMENT
+  NOTIFICATION_SYSTEME
+  // Ex: "Le Service Logement a rejoint la conversation"
+  RENDEZ_VOUS
+  // Proposition de rendez-vous (date, lieu, note) stockée en JSON dans `contenu`
+}
+
+enum StatutDossier {
+  INCOMPLET // Locataire n'a pas tout rempli
+  SOUMIS // Locataire a soumis son dossier
+  EN_ETUDE // Direction examine
+  VALIDE // Direction a validé
+  REJETE // Direction a rejeté
+}
+
+enum TypeDocumentDossier {
+  PIECE_IDENTITE
+  JUSTIFICATIF_DOMICILE
+  BULLETIN_SALAIRE // Pour fonctionnaires
+  ATTESTATION_EMPLOI // Pour fonctionnaires
+  ACTE_NAISSANCE
+  PHOTO_IDENTITE
+  CONTRAT_TRAVAIL // Pour privés
+  AVIS_IMPOSITION
+  AUTRE
+}
+
+// ─── Modèles ──────────────────────────────────────────────────────────────────
+
+model Utilisateur {
+  id              Int            @id @default(autoincrement())
+  nom             String
+  prenom          String
+  email           String         @unique
+  motDePasse      String
+  telephone       String?
+  role            Role
+  typeLocataire   TypeLocataire?
+  numeroMatricule String?
+  actif           Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations existantes
+  demandes               DemandeLogement[]   @relation("DemandeurDemandes")
+  demandesTraitees       DemandeLogement[]   @relation("TraiteParDemandes")
+  mutations              Mutation[]          @relation("DemandeurMutations")
+  mutationsTraitees      Mutation[]          @relation("TraiteParMutations")
+  tickets                TicketMaintenance[] @relation("DemandeurTickets")
+  interventions          Intervention[]      @relation("TechnicienInterventions")
+  interventionsAssignees Intervention[]      @relation("AssigneParInterventions")
+  occupations            Occupation[]
+  notifications          Notification[]
+
+  // Nouvelles relations inverses
+  demandesValideesDirection  DemandeLogement[]   @relation("ValidationDirection")
+  mutationsValideesDirection Mutation[]          @relation("ValidationDirectionMutation")
+  constatsEffectues          TicketMaintenance[] @relation("AgentConstat")
+  verificationsEffectuees    TicketMaintenance[] @relation("AgentVerification")
+  photosUploadees            PhotoIntervention[]
+  paiements                  Paiement[]          @relation("LocatairePaiements")
+  paiementsEnregistres       Paiement[]          @relation("AgentEnregistrement")
+  logsActivite               LogActivite[]
+  documents                  Document[]
+  photosLogementUploadees    PhotoLogement[]     @relation("PhotosLogementUploadees")
+
+  // Chat temps réel
+  conversationsLocataire       Conversation[] @relation("ConversationLocataire")
+  conversationsServiceLogement Conversation[] @relation("ConversationServiceLogement")
+  messagesEnvoyes              Message[]      @relation("MessagesEnvoyes")
+
+  // Dossiers clients
+  dossiersClient DossierClient[]
+}
+
+model Logement {
+  id           Int            @id @default(autoincrement())
+  code         String         @unique
+  adresse      String         @db.Text
+  ville        String
+  quartier     String?
+  type         TypeLogement
+  superficie   Float?
+  nombrePieces Int?
+  etage        Int            @default(0)
+  statut       StatutLogement @default(DISPONIBLE)
+  description  String?        @db.Text
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Commodités
+  meuble            Boolean @default(false)
+  parking           Boolean @default(false)
+  gardien           Boolean @default(false)
+  eauCourante       Boolean @default(true)
+  electricite       Boolean @default(true)
+  climatisation     Boolean @default(false)
+  internet          Boolean @default(false)
+  ascenseur         Boolean @default(false)
+  piscine           Boolean @default(false)
+  jardin            Boolean @default(false)
+  sallesDeSport     Boolean @default(false)
+  groupeElectrogene Boolean @default(false)
+
+  // Description commerciale
+  titreCommercial String? @db.VarChar(255)
+  // Titre accrocheur séparé de la description, affiché en premier dans la galerie locataire
+
+  descriptionCommerciale String? @db.Text
+  // Texte de présentation pour la galerie (différent du champ description technique)
+
+  montantLoyer Decimal? @db.Decimal(10, 2)
+  // Loyer mensuel en FCFA
+
+  demandes            DemandeLogement[]
+  tickets             TicketMaintenance[]
+  occupations         Occupation[]
+  mutationsActuelles  Mutation[]          @relation("LogementActuel")
+  mutationsSouhaitees Mutation[]          @relation("LogementSouhaite")
+  paiements           Paiement[]
+  photos              PhotoLogement[]
+}
+
+model DemandeLogement {
+  id             Int           @id @default(autoincrement())
+  demandeurId    Int
+  logementId     Int?
+  traitePar      Int?
+  motif          String        @db.Text
+  statut         StatutDemande @default(SOUMISE)
+  priorite       Priorite      @default(NORMALE)
+  commentaire    String?       @db.Text
+  dateDepot      DateTime      @default(now())
+  dateTraitement DateTime?
+
+  // Circuit Direction
+  valideParDirectionId    Int?
+  dateValidationDirection DateTime?
+  commentaireDirection    String?   @db.Text
+
+  // Horodatage d'un forçage de statut par le Super Admin (Santé système) —
+  // sert à réinitialiser le compteur de blocage indépendamment du statut choisi.
+  derniereActionAdmin DateTime?
+
+  alerteDisponibilite Boolean @default(false)
+  // true = locataire veut être notifié quand ce logement se libère
+  // (utilisé pour les logements occupés)
+
+  demandeur          Utilisateur  @relation("DemandeurDemandes", fields: [demandeurId], references: [id], onDelete: Cascade)
+  logement           Logement?    @relation(fields: [logementId], references: [id], onDelete: SetNull)
+  responsable        Utilisateur? @relation("TraiteParDemandes", fields: [traitePar], references: [id], onDelete: SetNull)
+  valideParDirection Utilisateur? @relation("ValidationDirection", fields: [valideParDirectionId], references: [id], onDelete: SetNull)
+
+  conversation Conversation?
+  dossier      DossierClient?
+}
+
+model Mutation {
+  id                 Int           @id @default(autoincrement())
+  demandeurId        Int
+  logementActuelId   Int
+  logementSouhaiteId Int?
+  traitePar          Int?
+  motif              String        @db.Text
+  statut             StatutDemande @default(SOUMISE)
+  commentaire        String?       @db.Text
+  dateDepot          DateTime      @default(now())
+  dateTraitement     DateTime?
+
+  // Circuit Direction
+  valideParDirectionId    Int?
+  dateValidationDirection DateTime?
+  commentaireDirection    String?   @db.Text
+
+  demandeur          Utilisateur  @relation("DemandeurMutations", fields: [demandeurId], references: [id], onDelete: Cascade)
+  logementActuel     Logement     @relation("LogementActuel", fields: [logementActuelId], references: [id], onDelete: Cascade)
+  logementSouhaite   Logement?    @relation("LogementSouhaite", fields: [logementSouhaiteId], references: [id], onDelete: SetNull)
+  responsable        Utilisateur? @relation("TraiteParMutations", fields: [traitePar], references: [id], onDelete: SetNull)
+  valideParDirection Utilisateur? @relation("ValidationDirectionMutation", fields: [valideParDirectionId], references: [id], onDelete: SetNull)
+}
+
+model TicketMaintenance {
+  id          Int          @id @default(autoincrement())
+  demandeurId Int
+  logementId  Int
+  titre       String
+  description String       @db.Text
+  priorite    Priorite     @default(NORMALE)
+  statut      StatutTicket @default(SOUMIS)
+  dateDepot   DateTime     @default(now())
+  dateCloture DateTime?
+
+  // Circuit constat / vérification
+  agentConstatId            Int?
+  dateConstatPrevue         DateTime?
+  dateConstat               DateTime?
+  commentaireConstat        String?   @db.Text
+  modeReparation            String?
+  dateConfirmationLocataire DateTime?
+  agentVerificationId       Int?
+  dateVerification          DateTime?
+  conformeApresVerif        Boolean?
+
+  // Horodatage d'un forçage de statut par le Super Admin (Santé système) —
+  // sert à réinitialiser le compteur de blocage indépendamment du statut choisi.
+  derniereActionAdmin DateTime?
+
+  demandeur         Utilisateur         @relation("DemandeurTickets", fields: [demandeurId], references: [id], onDelete: Cascade)
+  logement          Logement            @relation(fields: [logementId], references: [id], onDelete: Cascade)
+  intervention      Intervention?
+  agentConstat      Utilisateur?        @relation("AgentConstat", fields: [agentConstatId], references: [id], onDelete: SetNull)
+  agentVerification Utilisateur?        @relation("AgentVerification", fields: [agentVerificationId], references: [id], onDelete: SetNull)
+  photos            PhotoIntervention[]
+}
+
+model Intervention {
+  id              Int                @id @default(autoincrement())
+  ticketId        Int                @unique
+  technicienId    Int
+  assignePar      Int?
+  description     String?            @db.Text
+  statut          StatutIntervention @default(ASSIGNEE)
+  rapport         String?            @db.Text
+  dateAssignation DateTime           @default(now())
+  dateDebut       DateTime?
+  dateFin         DateTime?
+
+  ticket     TicketMaintenance @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  technicien Utilisateur       @relation("TechnicienInterventions", fields: [technicienId], references: [id], onDelete: Cascade)
+  assigneur  Utilisateur?      @relation("AssigneParInterventions", fields: [assignePar], references: [id], onDelete: SetNull)
+}
+
+model Occupation {
+  id            Int              @id @default(autoincrement())
+  utilisateurId Int
+  logementId    Int
+  dateEntree    DateTime
+  dateSortie    DateTime?
+  statut        StatutOccupation @default(ACTIVE)
+  actif         Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  logement    Logement    @relation(fields: [logementId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id            Int              @id @default(autoincrement())
+  utilisateurId Int
+  message       String           @db.Text
+  type          TypeNotification @default(INFO)
+  lu            Boolean          @default(false)
+  lien          String?
+  createdAt     DateTime         @default(now())
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+}
+
+model PhotoIntervention {
+  id                 Int       @id @default(autoincrement())
+  ticketId           Int
+  uploadedById       Int
+  typePhoto          TypePhoto
+  urlPhoto           String    @db.VarChar(500)
+  publicIdCloudinary String?   @db.VarChar(255)
+  commentaire        String?   @db.Text
+  createdAt          DateTime  @default(now())
+
+  ticket     TicketMaintenance @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploadedBy Utilisateur       @relation(fields: [uploadedById], references: [id])
+}
+
+model Paiement {
+  id                   Int            @id @default(autoincrement())
+  locataireId          Int
+  logementId           Int
+  montant              Decimal        @db.Decimal(10, 2)
+  modePaiement         ModePaiement
+  statut               StatutPaiement @default(EN_ATTENTE)
+  periodeMois          Int
+  periodeAnnee         Int
+  dateEcheance         DateTime
+  datePaiement         DateTime?
+  referenceTransaction String?        @db.VarChar(255)
+  enregistrePar        Int?
+  commentaire          String?        @db.Text
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  locataire           Utilisateur  @relation("LocatairePaiements", fields: [locataireId], references: [id])
+  logement            Logement     @relation(fields: [logementId], references: [id])
+  agentEnregistrement Utilisateur? @relation("AgentEnregistrement", fields: [enregistrePar], references: [id])
+}
+
+model LogActivite {
+  id Int @id @default(autoincrement())
+
+  // Nullable : un compte supprimé ne doit pas faire planter la lecture des
+  // logs (l'historique d'activité est conservé même si son auteur est parti).
+  utilisateurId Int?
+  utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id], onDelete: SetNull)
+
+  typeAction TypeAction
+  module     String     @db.VarChar(50)
+  // ex: "utilisateurs", "demandes", "tickets",
+  // "logements", "mutations"
+
+  description String @db.Text
+  // ex: "A créé le compte Responsable Technique
+  // moussa.traore@sonapie.ci"
+
+  entiteId   Int?
+  // id de l'objet concerné (ticket, demande, etc.)
+  entiteType String? @db.VarChar(50)
+  // ex: "TicketMaintenance", "DemandeLogement"
+
+  adresseIp String?  @db.VarChar(45)
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id                 Int          @id @default(autoincrement())
+  utilisateurId      Int
+  titre              String
+  typeDocument       TypeDocument @default(AUTRE)
+  urlFichier         String       @db.VarChar(500)
+  publicIdCloudinary String?      @db.VarChar(255)
+  createdAt          DateTime     @default(now())
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+}
+
+model PhotoLogement {
+  id Int @id @default(autoincrement())
+
+  logementId Int
+  logement   Logement @relation(fields: [logementId], references: [id], onDelete: Cascade)
+
+  uploadedById Int
+  uploadedBy   Utilisateur @relation("PhotosLogementUploadees", fields: [uploadedById], references: [id])
+
+  typePiece          TypePieceLogement @default(AUTRE)
+  urlPhoto           String            @db.VarChar(500)
+  publicIdCloudinary String?           @db.VarChar(255)
+  description        String?           @db.VarChar(255)
+  ordre              Int               @default(0)
+  // pour trier les photos dans le diaporama
+
+  createdAt DateTime @default(now())
+}
+
+// ─── Chat temps réel (Socket.io) ───────────────────────────────────────────────
+// Un chat est lié à une DemandeLogement. Il s'ouvre quand la Direction valide
+// et que le Service Logement prend le relais.
+
+model Conversation {
+  id Int @id @default(autoincrement())
+
+  demandeId Int             @unique
+  demande   DemandeLogement @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+
+  locataireId Int
+  locataire   Utilisateur @relation("ConversationLocataire", fields: [locataireId], references: [id])
+
+  serviceLogementId Int?
+  // Agent Service Logement assigné à ce dossier
+  serviceLogement   Utilisateur? @relation("ConversationServiceLogement", fields: [serviceLogementId], references: [id])
+
+  statut StatutConversation @default(EN_ATTENTE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id Int @id @default(autoincrement())
+
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  expediteurId Int
+  expediteur   Utilisateur @relation("MessagesEnvoyes", fields: [expediteurId], references: [id])
+
+  contenu String      @db.Text
+  type    TypeMessage @default(TEXTE)
+  lu      Boolean     @default(false)
+
+  // Si le message contient un document
+  urlFichier String? @db.VarChar(500)
+  nomFichier String? @db.VarChar(255)
+
+  // Pour les messages de type RENDEZ_VOUS : évite qu'un job de rappel envoie
+  // la même notification à chaque exécution une fois l'heure du RDV atteinte.
+  rappelEnvoye Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+// ─── Dossier client ─────────────────────────────────────────────────────────────
+// Un dossier est lié à une DemandeLogement et contient les infos + documents du locataire.
+
+model DossierClient {
+  id Int @id @default(autoincrement())
+
+  demandeId Int             @unique
+  demande   DemandeLogement @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+
+  locataireId Int
+  locataire   Utilisateur @relation(fields: [locataireId], references: [id])
+
+  // Informations personnelles
+  dateNaissance      DateTime?
+  lieuNaissance      String?   @db.VarChar(200)
+  nationalite        String?   @db.VarChar(100)
+  situationFamiliale String?   @db.VarChar(50)
+  // Célibataire, Marié, Divorcé, Veuf
+  nombreEnfants      Int?
+
+  // Informations professionnelles
+  employeur     String?  @db.VarChar(200)
+  poste         String?  @db.VarChar(200)
+  anciennete    Int? // En années
+  revenuMensuel Decimal? @db.Decimal(10, 2)
+  // En FCFA
+
+  // Pour fonctionnaires spécifiquement
+  ministere String? @db.VarChar(200)
+  direction String? @db.VarChar(200)
+  grade     String? @db.VarChar(100)
+  indice    String? @db.VarChar(50)
+
+  // Statut du dossier
+  statut               StatutDossier @default(INCOMPLET)
+  commentaireDirection String?       @db.Text
+  dateEtude            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents DocumentDossier[]
+}
+
+model DocumentDossier {
+  id Int @id @default(autoincrement())
+
+  dossierId Int
+  dossier   DossierClient @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  type               TypeDocumentDossier
+  urlFichier         String              @db.VarChar(500)
+  publicIdCloudinary String?             @db.VarChar(255)
+  nomOriginal        String?             @db.VarChar(255)
+  valide             Boolean?
+  // null=pas encore vérifié, true=valide, false=rejeté
+  commentaire        String?             @db.VarChar(500)
+  // Commentaire Direction sur ce document
+
+  createdAt DateTime @default(now())
+}
