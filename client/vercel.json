@@ -1,5 +1,9 @@
 {
   "buildCommand": "npm install && npx --yes vite build",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "env": {
+    "VITE_API_URL": "https://sonapie-logement.onrender.com/api",
+    "VITE_SOCKET_URL": "https://sonapie-logement.onrender.com"
+  }
 }

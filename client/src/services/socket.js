@@ -1,12 +1,13 @@
 import { io } from 'socket.io-client'
 
-// VITE_API_URL vaut '/api' en dev (chemin relatif utilisé par axios via le proxy
-// Vite) — inutilisable tel quel pour Socket.io, qui a besoin d'une origine
-// complète. On ne l'utilise donc que si c'est une vraie URL absolue (prod),
-// sinon on retombe sur l'hôte courant : 5000 (comportement du serveur en dev).
-const envUrl = import.meta.env.VITE_API_URL
-const SOCKET_URL = envUrl?.startsWith('http')
-  ? envUrl
+// VITE_SOCKET_URL doit être l'origine nue du serveur (sans /api) — passer une
+// URL se terminant par /api à Socket.io la ferait interpréter comme un nom de
+// namespace ("/api") plutôt que comme l'hôte, et la connexion échouerait
+// silencieusement. En dev, ni l'un ni l'autre n'est défini en absolu : on
+// retombe sur l'hôte courant : 5000 (comportement du serveur en dev).
+const socketEnvUrl = import.meta.env.VITE_SOCKET_URL
+const SOCKET_URL = socketEnvUrl?.startsWith('http')
+  ? socketEnvUrl
   : `${window.location.protocol}//${window.location.hostname}:5000`
 
 let socket = null
