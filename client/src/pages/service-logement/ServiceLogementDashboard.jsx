@@ -697,7 +697,7 @@ function EditLogementModal({ logement, onClose, onSaved, fire }) {
         <div className="px-6 py-5 space-y-5 max-h-[62vh] overflow-y-auto">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Informations générales</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="col-span-2 sm:col-span-1">
                 <label className="text-xs font-semibold text-gray-600 mb-1 block">Code *</label>
                 <input value={form.code} onChange={e => set('code', e.target.value)} required className={inp} placeholder="LOG-001" />
@@ -759,7 +759,7 @@ function EditLogementModal({ logement, onClose, onSaved, fire }) {
 
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Commodités</h3>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
               {COMMODITES_META.map(({ key, label, icon: CIcon }) => (
                 <label key={key} className="flex items-center justify-between gap-3 cursor-pointer">
                   <span className="flex items-center gap-2.5 text-sm text-gray-700">
@@ -988,7 +988,7 @@ function CreerLogementStepperModal({ onClose, onCreated, fire }) {
         <div className="px-6 py-5 space-y-5 max-h-[56vh] overflow-y-auto">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Identification</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center">
                   Code *
@@ -1014,7 +1014,7 @@ function CreerLogementStepperModal({ onClose, onCreated, fire }) {
                 <textarea rows={2} value={form.adresse} onChange={e => set('adresse', e.target.value)} className={inp} />
                 {errors.adresse && <p className="text-xs text-red-500 mt-1">{errors.adresse}</p>}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Ville *</label>
                   <input value={form.ville} onChange={e => set('ville', e.target.value)} className={inp} />
@@ -1030,7 +1030,7 @@ function CreerLogementStepperModal({ onClose, onCreated, fire }) {
 
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Caractéristiques</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1 block">Superficie (m²)</label>
                 <input type="number" min="0" step="0.1" value={form.superficie} onChange={e => set('superficie', e.target.value)} className={inp} />
@@ -1088,7 +1088,7 @@ function CreerLogementStepperModal({ onClose, onCreated, fire }) {
 
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Commodités</h3>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
               {COMMODITES_META.map(({ key, label, icon: CIcon }) => (
                 <label key={key} className="flex items-center justify-between gap-3 cursor-pointer">
                   <span className="flex items-center gap-2.5 text-sm text-gray-700">
@@ -1128,7 +1128,7 @@ function CreerLogementStepperModal({ onClose, onCreated, fire }) {
             </div>
 
             {stagedPhotos.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mt-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
                 {stagedPhotos.map(photo => (
                   <div key={photo.id} className="relative rounded-lg overflow-hidden border border-gray-200 h-20">
                     <img src={photo.preview} alt="" className="w-full h-full object-cover" />
@@ -1329,7 +1329,7 @@ function PhotosModal({ logement, onClose, fire, onPhotosChanged, onPreview, onOp
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {group.photos.map((photo, idx) => {
                     const isPrincipale = photos[0]?.id === photo.id
                     return (
