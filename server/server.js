@@ -1,6 +1,7 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
+import helmet from 'helmet'
 import os from 'os'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
@@ -14,14 +15,34 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 5000
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      callback(null, true)
-    },
-    credentials: true,
-  }),
-)
+// Origines autorisées : dev local (tous ports) + tout déploiement Vercel du
+// projet (les URLs de preview changent à chaque déploiement, d'où le motif).
+// Reflect-any-origin + credentials:true est une faille CORS classique — on
+// valide explicitement au lieu d'accepter n'importe quelle origine.
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^http:\/\/localhost:\d+$/,
+  /^http:\/\/127\.0\.0\.1:\d+$/,
+  /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/, // accès depuis un téléphone sur le même WiFi en dev
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/,
+]
+
+function isOriginAutorisee(origin) {
+  // Pas d'en-tête Origin (curl, apps mobiles, health checks) : on laisse passer,
+  // ces requêtes n'envoient de toute façon pas de cookies/credentials navigateur.
+  if (!origin) return true
+  return ALLOWED_ORIGIN_PATTERNS.some(re => re.test(origin))
+}
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (isOriginAutorisee(origin)) return callback(null, true)
+    return callback(new Error('Origine non autorisée par CORS.'))
+  },
+  credentials: true,
+}
+
+app.use(helmet())
+app.use(cors(corsOptions))
 
 app.use(express.json())
 app.use('/api', apiRoutes)
@@ -31,8 +52,12 @@ const httpServer = createServer(app)
 
 const io = new Server(httpServer, {
   cors: {
-    origin: '*',
+    origin(origin, callback) {
+      if (isOriginAutorisee(origin)) return callback(null, true)
+      return callback(new Error('Origine non autorisée par CORS.'))
+    },
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 })
 

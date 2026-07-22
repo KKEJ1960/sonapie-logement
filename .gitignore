@@ -4,9 +4,17 @@ node_modules/
 !.env.example
 !client/.env.production
 
+# Clés et certificats — ne doivent jamais être committés
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
 dist/
 build/
 dev-dist/
+coverage/
 
 *.log
 npm-debug.log*
