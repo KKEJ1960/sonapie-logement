@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, UserPlus, FileText, BellRing, Wrench } from 'lucide-react'
-import axios from 'axios'
+import api from '../services/api.js'
 
 const O = '#E8520A'
 const GRADIENT = 'linear-gradient(135deg, #E8520A 0%, #ff8c4a 100%)'
@@ -180,7 +180,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const response = await axios.post('/api/auth/login', { email, motDePasse: password })
+      const response = await api.post('/auth/login', { email, motDePasse: password })
       const { token, user } = response.data
 
       sessionStorage.setItem('token', token)

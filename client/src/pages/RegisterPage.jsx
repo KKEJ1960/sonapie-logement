@@ -5,7 +5,7 @@ import {
   User, Mail, Lock, Phone, Eye, EyeOff,
   CheckCircle, AlertCircle, Hash,
 } from 'lucide-react'
-import axios from 'axios'
+import api from '../services/api.js'
 
 const O = '#E8520A'
 
@@ -98,7 +98,7 @@ export default function RegisterPage() {
     setLoading(true)
     setApiError('')
     try {
-      await axios.post('/api/auth/register', {
+      await api.post('/auth/register', {
         prenom:          form.prenom.trim(),
         nom:             form.nom.trim(),
         email:           form.email.trim(),
