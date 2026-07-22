@@ -556,7 +556,11 @@ model Message {
 
   // Pour les messages de type RENDEZ_VOUS : évite qu'un job de rappel envoie
   // la même notification à chaque exécution une fois l'heure du RDV atteinte.
-  rappelEnvoye Boolean @default(false)
+  rappelEnvoye     Boolean @default(false)
+  // Rappels en avance (24h et 1h avant le rendez-vous), indépendants du
+  // rappel "c'est maintenant" ci-dessus — chacun ne doit partir qu'une fois.
+  rappel24hEnvoye  Boolean @default(false)
+  rappel1hEnvoye   Boolean @default(false)
 
   createdAt DateTime @default(now())
 }

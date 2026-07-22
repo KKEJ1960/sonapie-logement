@@ -942,6 +942,7 @@ function CreerLogementStepperModal({ onClose, onCreated, fire }) {
 
       if (stagedPhotos.length > 0) {
         let uploaded = 0
+        let lastError = null
         for (const photo of stagedPhotos) {
           try {
             const fd = new FormData()
@@ -951,11 +952,18 @@ function CreerLogementStepperModal({ onClose, onCreated, fire }) {
               headers: { 'Content-Type': 'multipart/form-data' },
             })
             uploaded++
-          } catch {
+          } catch (err) {
             // on continue avec les photos restantes même si l'une d'elles échoue
+            lastError = err.response?.data?.message || err.message
           }
         }
-        fire('success', `Logement ${data.code} créé avec succès. ${uploaded} photo${uploaded > 1 ? 's' : ''} ajoutée${uploaded > 1 ? 's' : ''}.`)
+        if (uploaded === stagedPhotos.length) {
+          fire('success', `Logement ${data.code} créé avec succès. ${uploaded} photo${uploaded > 1 ? 's' : ''} ajoutée${uploaded > 1 ? 's' : ''}.`)
+        } else if (uploaded > 0) {
+          fire('warning', `Logement ${data.code} créé, mais ${stagedPhotos.length - uploaded} photo(s) sur ${stagedPhotos.length} n'ont pas pu être ajoutées${lastError ? ` (${lastError})` : ''}.`)
+        } else {
+          fire('warning', `Logement ${data.code} créé, mais aucune photo n'a pu être ajoutée${lastError ? ` (${lastError})` : ''}. Réessayez depuis "Photos".`)
+        }
       } else {
         fire('success', `Logement ${data.code} créé avec succès.`)
       }
@@ -1642,6 +1650,7 @@ const AGENDA_TABS_SL = [
   { key: 'AVENIR', label: 'À venir' },
   { key: 'PASSES', label: 'Passés' },
 ]
+const CONFIRMATION_RDV_PREFIX = '✓ Rendez-vous confirmé'
 
 function AgendaServiceSection({ fire, onProposerDate }) {
   const [rendezVous, setRendezVous] = useState([])
@@ -1662,6 +1671,29 @@ function AgendaServiceSection({ fire, onProposerDate }) {
   }, [])
 
   useEffect(() => { fetchRendezVous() }, [fetchRendezVous])
+
+  // Rejoint les conversations concernées et rafraîchit la liste dès que le
+  // locataire confirme un rendez-vous pendant que cet onglet est déjà ouvert —
+  // sinon "confirme" (dérivé côté serveur) ne se met à jour qu'au reload.
+  const conversationIds = useMemo(
+    () => [...new Set(rendezVous.map(r => r.conversationId))].join(','),
+    [rendezVous],
+  )
+  useEffect(() => {
+    if (!conversationIds) return
+    const socket = connectSocket()
+    conversationIds.split(',').forEach(id => socket.emit('rejoindre_conversation', id))
+
+    const onNouveauMessage = (message) => {
+      if (message.type === 'TEXTE' && message.contenu?.startsWith(CONFIRMATION_RDV_PREFIX)) {
+        fetchRendezVous()
+      }
+    }
+    socket.on('nouveau_message', onNouveauMessage)
+    return () => { socket.off('nouveau_message', onNouveauMessage) }
+  }, [conversationIds, fetchRendezVous])
+
+  useEffect(() => () => disconnectSocket(), [])
 
   const maintenant = Date.now()
   const finSemaine = maintenant + 7 * 24 * 60 * 60 * 1000
