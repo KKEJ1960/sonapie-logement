@@ -186,6 +186,10 @@ export default function RegisterPage() {
           <img
             src="/WhatsApp Image 2026-06-11 at 12.53.19.jpeg"
             alt="SONAPIE"
+            width="1600"
+            height="380"
+            decoding="async"
+            fetchPriority="high"
             style={{ width: 200, height: 'auto', display: 'block', mixBlendMode: 'multiply' }}
           />
         </motion.div>
@@ -241,6 +245,9 @@ export default function RegisterPage() {
             <img
               src="/WhatsApp Image 2026-06-11 at 12.53.19.jpeg"
               alt="SONAPIE"
+              width="1600"
+              height="380"
+              decoding="async"
               style={{ width: 160, height: 'auto', display: 'inline-block', mixBlendMode: 'multiply' }}
             />
           </div>

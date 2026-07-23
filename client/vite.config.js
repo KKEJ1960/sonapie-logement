@@ -1,10 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
 
 export default defineConfig({
   plugins: [
     react(),
+    // Compresse les images statiques (client/public + src/assets) au build.
+    // N'affecte jamais les photos Cloudinary, qui ne transitent pas par ce build.
+    ViteImageOptimizer({
+      includePublic: true,
+      png: { compressionLevel: 9 }, // sans perte (palette non activée)
+      jpg: { quality: 80 },
+      jpeg: { quality: 80 },
+      webp: { quality: 80 }, // s'applique aux .webp déjà présents dans le projet
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo-sonapie-512.png'],
@@ -31,7 +41,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Grandes illustrations décoratives (LoginPage) : pas critiques pour l'app-shell
         // hors-ligne, on évite de gonfler le précache initial avec plusieurs Mo chacune.
-        globIgnores: ['**/salon.png', '**/immeuble.png', '**/ChatGPT Image*.png'],
+        globIgnores: ['**/salon.png', '**/immeuble.png', '**/hero-immeuble.webp'],
         runtimeCaching: [
           {
             // Appels à l'API (même origine, chemin relatif /api/... via le proxy Vite en dev)
@@ -72,6 +82,7 @@ export default defineConfig({
     },
   },
   build: {
+    assetsInlineLimit: 4096, // inline en base64 les tout petits fichiers (< 4 Ko)
     rollupOptions: {
       output: {
         manualChunks: {

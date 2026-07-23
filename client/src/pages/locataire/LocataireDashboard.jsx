@@ -1169,7 +1169,7 @@ function AccueilSection({
         {/* Photo décorative : pleine largeur sur mobile (fondu uniforme pour garder le texte lisible),
             cantonnée à la moitié droite sur desktop (fondu latéral, photo bien visible). */}
         <div className="absolute inset-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[52%]">
-          <img src="/salon.png" alt="" className="w-full h-full object-cover" />
+          <img src="/salon.png" alt="" decoding="async" fetchPriority="high" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-orange-100/60 lg:bg-gradient-to-r lg:from-orange-100 lg:via-orange-100/25 lg:to-transparent" />
         </div>
 
@@ -1196,7 +1196,7 @@ function AccueilSection({
             <>
               <div className="flex items-center gap-2 mb-2.5">
                 <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0">
-                  <img src="/immeuble.png" alt="" className="w-full h-full object-cover" />
+                  <img src="/immeuble.png" alt="" width="44" height="44" decoding="async" className="w-full h-full object-cover" />
                 </div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mon logement</p>
               </div>
@@ -1208,7 +1208,7 @@ function AccueilSection({
             <>
               <div className="flex items-center gap-2 mb-2.5">
                 <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0">
-                  <img src="/immeuble.png" alt="" className="w-full h-full object-cover" />
+                  <img src="/immeuble.png" alt="" width="44" height="44" decoding="async" className="w-full h-full object-cover" />
                 </div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mon logement</p>
               </div>
@@ -1365,7 +1365,7 @@ function AccueilSection({
               Voir nos conseils
             </button>
           </div>
-          <img src="/bricoleur.png" alt="" className="absolute bottom-0 right-0 w-32 h-32 object-cover object-top rounded-tl-2xl" />
+          <img src="/bricoleur.png" alt="" loading="lazy" decoding="async" width="128" height="128" className="absolute bottom-0 right-0 w-32 h-32 object-cover object-top rounded-tl-2xl" />
         </div>
       </div>
     </div>

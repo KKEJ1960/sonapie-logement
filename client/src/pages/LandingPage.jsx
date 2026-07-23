@@ -58,10 +58,10 @@ export default function LandingPage() {
         <motion.img
           src="/WhatsApp Image 2026-06-11 at 12.53.19.jpeg"
           alt="SONAPIE"
-          loading="lazy"
           decoding="async"
-          width="440"
-          height="200"
+          fetchPriority="high"
+          width="1600"
+          height="380"
           {...enter(0)}
           style={{
             width: 'min(440px, 78vw)',
