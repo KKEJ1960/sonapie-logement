@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import { useWakeUpServer } from './hooks/useWakeUpServer.js'
 
 const LandingPage         = lazy(() => import('./pages/LandingPage.jsx'))
 const LoginPage           = lazy(() => import('./pages/LoginPage.jsx'))
@@ -41,6 +42,10 @@ const Loader = () => (
 )
 
 export default function App() {
+  // Réveille le backend (Render) dès le chargement de l'app, avant même que
+  // l'utilisateur atteigne l'écran de connexion.
+  useWakeUpServer()
+
   return (
     <Suspense fallback={<Loader />}>
       <Routes>

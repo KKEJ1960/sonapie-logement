@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, UserPlus, FileText, BellRing, Wrench } from 'lucide-react'
 import api from '../services/api.js'
+import { useWakeUpServer } from '../hooks/useWakeUpServer.js'
 
 const O = '#E8520A'
 const GRADIENT = 'linear-gradient(135deg, #E8520A 0%, #ff8c4a 100%)'
@@ -174,6 +175,17 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [successUser, setSuccessUser] = useState(null)
 
+  // Le backend (Render, plan gratuit) peut être en veille — n'affiche l'attente
+  // que si ça dépasse 3s, pour ne pas faire clignoter l'indicateur inutilement
+  // quand le serveur est déjà réveillé (cas le plus courant).
+  const serverAwake = useWakeUpServer()
+  const [showWakingUp, setShowWakingUp] = useState(false)
+  useEffect(() => {
+    if (serverAwake) { setShowWakingUp(false); return }
+    const timer = setTimeout(() => setShowWakingUp(true), 3000)
+    return () => clearTimeout(timer)
+  }, [serverAwake])
+
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -270,6 +282,10 @@ export default function LoginPage() {
           <img
             src="/WhatsApp Image 2026-06-11 at 12.53.19.jpeg"
             alt="SONAPIE"
+            width="1600"
+            height="380"
+            decoding="async"
+            fetchPriority="high"
             style={{ width: 150, height: 'auto', display: 'block', mixBlendMode: 'multiply' }}
           />
         </motion.div>
@@ -338,9 +354,12 @@ export default function LoginPage() {
         {/* Illustration immeuble — ancrée en bas du panneau */}
         <div style={{ marginTop: 'auto', width: '100%', position: 'relative', zIndex: 1, lineHeight: 0 }}>
           <img
-            src="/ChatGPT Image 14 juil. 2026, 14_52_02.png"
+            src="/hero-immeuble.webp"
             alt=""
             aria-hidden
+            width="1336"
+            height="843"
+            decoding="async"
             style={{ width: '100%', maxHeight: 310, objectFit: 'contain', objectPosition: 'bottom', display: 'block', marginLeft: 'auto', marginRight: 'auto' }}
           />
         </div>
@@ -371,6 +390,9 @@ export default function LoginPage() {
             <img
               src="/WhatsApp Image 2026-06-11 at 12.53.19.jpeg"
               alt="SONAPIE"
+              width="1600"
+              height="380"
+              decoding="async"
               style={{ width: 180, height: 'auto', display: 'inline-block', mixBlendMode: 'multiply' }}
             />
           </div>
@@ -432,6 +454,29 @@ export default function LoginPage() {
                 Mot de passe oublié ?
               </button>
             </div>
+
+            {/* Réveil du serveur (cold start Render) */}
+            {showWakingUp && !serverAwake && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: '#F3F4F6', border: '1px solid #E5E7EB',
+                  borderRadius: 10, padding: '10px 14px',
+                  marginBottom: 20,
+                }}
+              >
+                <span
+                  style={{
+                    width: 14, height: 14, border: '2px solid #D1D5DB',
+                    borderTopColor: '#6B7280', borderRadius: '50%',
+                    animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: '0.82rem', color: '#6B7280' }}>Connexion au serveur en cours…</span>
+              </motion.div>
+            )}
 
             {/* Message d'erreur */}
             {error && (
