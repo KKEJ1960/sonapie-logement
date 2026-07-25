@@ -925,7 +925,7 @@ export default function LocataireDashboard() {
               tickets={dernierTickets} ticketsLoading={ticketsLoading} ticketsError={ticketsError} onRetryTickets={fetchTickets}
               ticketActif={ticketActif}
               onDeclarer={() => setShowDeclarer(true)}
-              onDemandeLogement={() => setShowDemandeLogement(true)}
+              onDemandeLogement={() => goTo('logements')}
               onOpenTicket={openTicket}
               onGoTo={goTo}
             />
