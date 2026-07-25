@@ -19,6 +19,7 @@ async function verifierRappels(io) {
 
     const messagesRdv = await prisma.message.findMany({
       where: { type: 'RENDEZ_VOUS', rappelEnvoye: false },
+      orderBy: { createdAt: 'asc' },
       include: {
         conversation: {
           select: {
@@ -31,7 +32,13 @@ async function verifierRappels(io) {
       },
     })
 
-    for (const m of messagesRdv) {
+    // Un nouveau RENDEZ_VOUS reprogramme le précédent dans la même conversation :
+    // on ne rappelle jamais une date obsolète, seulement la dernière proposée —
+    // même règle que chat.controller.js:getRendezVous.
+    const dernierParConversation = new Map()
+    for (const m of messagesRdv) dernierParConversation.set(m.conversationId, m)
+
+    for (const m of dernierParConversation.values()) {
       let data
       try { data = JSON.parse(m.contenu) } catch { continue }
       if (!data?.dateRendezVous) continue

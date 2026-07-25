@@ -303,31 +303,40 @@ export async function getRendezVous(req, res, next) {
     const rendezVous = []
     for (const conv of conversations) {
       const msgs = conv.messages
-      msgs.forEach((m, idx) => {
-        if (m.type !== 'RENDEZ_VOUS') return
 
-        let data
-        try { data = JSON.parse(m.contenu) } catch { return }
-        if (!data.dateRendezVous || !data.lieuRendezVous) return
+      // Un nouveau RENDEZ_VOUS reprogramme le précédent : seul le dernier proposé
+      // dans la conversation représente le rendez-vous actuel. Sans ce filtre, une
+      // reprogrammation laissait l'ancienne date visible comme un rendez-vous à
+      // part entière, et sa confirmation (qui vise forcément la plus récente)
+      // marquait aussi l'ancienne comme confirmée.
+      let idx = -1
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].type === 'RENDEZ_VOUS') { idx = i; break }
+      }
+      if (idx === -1) continue
+      const m = msgs[idx]
 
-        // "Confirmé" = un message de confirmation (texte préfixé) existe plus tard
-        // dans la même conversation, après ce message RENDEZ_VOUS.
-        const confirme = msgs.slice(idx + 1).some(
-          later => later.type === 'TEXTE' && later.contenu.startsWith(CONFIRMATION_PREFIX),
-        )
+      let data
+      try { data = JSON.parse(m.contenu) } catch { continue }
+      if (!data.dateRendezVous || !data.lieuRendezVous) continue
 
-        rendezVous.push({
-          id: m.id,
-          conversationId: conv.id,
-          dateRendezVous: data.dateRendezVous,
-          lieuRendezVous: data.lieuRendezVous,
-          noteRendezVous: data.note || null,
-          confirme,
-          locataire: conv.locataire,
-          logement: conv.demande?.logement || null,
-          expediteur: m.expediteur,
-          createdAt: m.createdAt,
-        })
+      // "Confirmé" = un message de confirmation (texte préfixé) existe plus tard
+      // dans la même conversation, après ce message RENDEZ_VOUS.
+      const confirme = msgs.slice(idx + 1).some(
+        later => later.type === 'TEXTE' && later.contenu.startsWith(CONFIRMATION_PREFIX),
+      )
+
+      rendezVous.push({
+        id: m.id,
+        conversationId: conv.id,
+        dateRendezVous: data.dateRendezVous,
+        lieuRendezVous: data.lieuRendezVous,
+        noteRendezVous: data.note || null,
+        confirme,
+        locataire: conv.locataire,
+        logement: conv.demande?.logement || null,
+        expediteur: m.expediteur,
+        createdAt: m.createdAt,
       })
     }
 

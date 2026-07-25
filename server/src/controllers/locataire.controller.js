@@ -471,13 +471,19 @@ export async function getMesStats(req, res, next) {
       // maintenance ci-dessus — voir chat.controller.js:getRendezVous.
       prisma.message.findMany({
         where: { type: 'RENDEZ_VOUS', conversation: { locataireId: userId } },
-        select: { contenu: true },
+        select: { contenu: true, conversationId: true },
+        orderBy: { createdAt: 'asc' },
       }),
     ])
 
-    // Prochain RDV Service Logement à venir (le plus proche parmi les messages RENDEZ_VOUS).
+    // Un nouveau RENDEZ_VOUS reprogramme le précédent dans la même conversation :
+    // seul le dernier proposé (par conversation) représente le rendez-vous actuel —
+    // voir chat.controller.js:getRendezVous pour la même règle.
+    const dernierRdvParConversation = new Map()
+    for (const m of messagesRdv) dernierRdvParConversation.set(m.conversationId, m)
+
     let prochainRdvServiceLogement = null
-    for (const m of messagesRdv) {
+    for (const m of dernierRdvParConversation.values()) {
       let data
       try { data = JSON.parse(m.contenu) } catch { continue }
       if (!data?.dateRendezVous) continue
