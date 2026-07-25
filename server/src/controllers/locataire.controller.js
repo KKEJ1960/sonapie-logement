@@ -440,6 +440,7 @@ export async function getMesStats(req, res, next) {
       ticketsEnAttentePlanification,
       demandesEnCours,
       prochainTicketConstat,
+      messagesRdv,
     ] = await Promise.all([
       prisma.ticketMaintenance.count({
         where: { demandeurId: userId, statut: { not: 'CLOTURE' } },
@@ -465,14 +466,46 @@ export async function getMesStats(req, res, next) {
         orderBy: { dateConstatPrevue: 'asc' },
         select: { dateConstatPrevue: true },
       }),
+      // Rendez-vous Service Logement (proposés via le chat) : stockés en JSON
+      // dans des messages de type RENDEZ_VOUS, indépendants des tickets de
+      // maintenance ci-dessus — voir chat.controller.js:getRendezVous.
+      prisma.message.findMany({
+        where: { type: 'RENDEZ_VOUS', conversation: { locataireId: userId } },
+        select: { contenu: true },
+      }),
     ])
+
+    // Prochain RDV Service Logement à venir (le plus proche parmi les messages RENDEZ_VOUS).
+    let prochainRdvServiceLogement = null
+    for (const m of messagesRdv) {
+      let data
+      try { data = JSON.parse(m.contenu) } catch { continue }
+      if (!data?.dateRendezVous) continue
+      const d = new Date(data.dateRendezVous)
+      if (d.getTime() < Date.now()) continue
+      if (!prochainRdvServiceLogement || d < prochainRdvServiceLogement) prochainRdvServiceLogement = d
+    }
+
+    // On unifie les deux sources de rendez-vous (constat de maintenance et RDV
+    // Service Logement) et on retient la plus proche dans le temps.
+    const dateConstat = prochainTicketConstat?.dateConstatPrevue || null
+    let prochainRendezVous = null
+    if (dateConstat && prochainRdvServiceLogement) {
+      prochainRendezVous = dateConstat <= prochainRdvServiceLogement
+        ? { date: dateConstat, type: 'CONSTAT' }
+        : { date: prochainRdvServiceLogement, type: 'SERVICE_LOGEMENT' }
+    } else if (dateConstat) {
+      prochainRendezVous = { date: dateConstat, type: 'CONSTAT' }
+    } else if (prochainRdvServiceLogement) {
+      prochainRendezVous = { date: prochainRdvServiceLogement, type: 'SERVICE_LOGEMENT' }
+    }
 
     res.json({
       ticketsEnCours,
       ticketsTermines,
       ticketsEnAttentePlanification,
       demandesEnCours,
-      prochainConstat: prochainTicketConstat?.dateConstatPrevue || null,
+      prochainRendezVous,
     })
   } catch (err) {
     console.error('[Locataire] getMesStats:', err)

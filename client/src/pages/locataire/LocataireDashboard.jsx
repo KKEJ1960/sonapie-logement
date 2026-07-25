@@ -1235,9 +1235,9 @@ function AccueilSection({
           <KpiCard icon={Clock} iconBg="#EFF6FF" iconColor="#3B82F6" value={stats.ticketsEnAttentePlanification} label="En attente de planification" onClick={() => onGoTo('interventions')} />
           <KpiCard
             icon={Calendar} iconBg="#FFFBEB" iconColor="#D97706"
-            value={stats.prochainConstat ? formatDate(stats.prochainConstat) : 'Aucun prévu'}
-            label="Prochain rendez-vous" small={!!stats.prochainConstat}
-            onClick={() => onGoTo('interventions')}
+            value={stats.prochainRendezVous ? formatDate(stats.prochainRendezVous.date) : 'Aucun prévu'}
+            label="Prochain rendez-vous" small={!!stats.prochainRendezVous}
+            onClick={() => onGoTo(stats.prochainRendezVous?.type === 'SERVICE_LOGEMENT' ? 'agenda' : 'interventions')}
           />
         </div>
       )}
