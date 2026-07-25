@@ -23,16 +23,15 @@ const SELECT_MUTATION_LIST = {
 
 async function histoMensuel(model, champDate) {
   const now = new Date()
-  const counts = []
 
-  for (let i = 6; i >= 0; i--) {
-    const debut = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const fin   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
-    const n = await model.count({ where: { [champDate]: { gte: debut, lt: fin } } })
-    counts.push(n)
-  }
-
-  return counts
+  return Promise.all(
+    Array.from({ length: 7 }, (_, idx) => {
+      const i = 6 - idx
+      const debut = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const fin   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
+      return model.count({ where: { [champDate]: { gte: debut, lt: fin } } })
+    }),
+  )
 }
 
 export async function getDashboardStats(_req, res, next) {
@@ -103,17 +102,19 @@ export async function getDashboardStats(_req, res, next) {
 export async function getDemandesMensuelles(_req, res, next) {
   try {
     const now = new Date()
-    const data = []
 
-    for (let i = 5; i >= 0; i--) {
-      const debut = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const fin   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
-      const [demandes, tickets] = await Promise.all([
-        prisma.demandeLogement.count({ where: { dateDepot: { gte: debut, lt: fin } } }),
-        prisma.ticketMaintenance.count({ where: { dateDepot: { gte: debut, lt: fin } } }),
-      ])
-      data.push({ mois: MOIS_LABELS[debut.getMonth()], demandes, tickets })
-    }
+    const data = await Promise.all(
+      Array.from({ length: 6 }, async (_, idx) => {
+        const i = 5 - idx
+        const debut = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const fin   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
+        const [demandes, tickets] = await Promise.all([
+          prisma.demandeLogement.count({ where: { dateDepot: { gte: debut, lt: fin } } }),
+          prisma.ticketMaintenance.count({ where: { dateDepot: { gte: debut, lt: fin } } }),
+        ])
+        return { mois: MOIS_LABELS[debut.getMonth()], demandes, tickets }
+      }),
+    )
 
     res.json(data)
   } catch (err) {

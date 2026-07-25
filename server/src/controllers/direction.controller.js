@@ -71,14 +71,15 @@ function debutMois() {
 
 async function histoJournalier(model, champDate, whereExtra = {}) {
   const now = new Date()
-  const counts = []
-  for (let i = 6; i >= 0; i--) {
-    const debut = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
-    const fin   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i + 1)
-    const n = await model.count({ where: { ...whereExtra, [champDate]: { gte: debut, lt: fin } } })
-    counts.push(n)
-  }
-  return counts
+
+  return Promise.all(
+    Array.from({ length: 7 }, (_, idx) => {
+      const i = 6 - idx
+      const debut = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+      const fin   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i + 1)
+      return model.count({ where: { ...whereExtra, [champDate]: { gte: debut, lt: fin } } })
+    }),
+  )
 }
 
 // ─── A) Demandes (toutes, filtrables) ──────────────────────────────────────────
