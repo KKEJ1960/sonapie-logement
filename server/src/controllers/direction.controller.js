@@ -69,17 +69,29 @@ function debutMois() {
   return new Date(d.getFullYear(), d.getMonth(), 1)
 }
 
+// Un seul aller-retour DB (au lieu de 7 count() séquentiels/parallèles) : on récupère
+// juste la colonne de date sur la fenêtre des 7 derniers jours, puis on répartit en
+// mémoire. Avec un connection_limit=3 côté TiDB, des requêtes concurrentes en masse
+// créent plus de contention sur le pool qu'elles n'économisent en aller-retours réseau.
 async function histoJournalier(model, champDate, whereExtra = {}) {
   const now = new Date()
+  const debut = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
+  const fin   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
 
-  return Promise.all(
-    Array.from({ length: 7 }, (_, idx) => {
-      const i = 6 - idx
-      const debut = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
-      const fin   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i + 1)
-      return model.count({ where: { ...whereExtra, [champDate]: { gte: debut, lt: fin } } })
-    }),
-  )
+  const rows = await model.findMany({
+    where: { ...whereExtra, [champDate]: { gte: debut, lt: fin } },
+    select: { [champDate]: true },
+  })
+
+  const counts = new Array(7).fill(0)
+  const MS_PER_DAY = 24 * 60 * 60 * 1000
+  for (const row of rows) {
+    const d = row[champDate]
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    const idx = Math.round((dayStart - debut) / MS_PER_DAY)
+    if (idx >= 0 && idx < 7) counts[idx]++
+  }
+  return counts
 }
 
 // ─── A) Demandes (toutes, filtrables) ──────────────────────────────────────────

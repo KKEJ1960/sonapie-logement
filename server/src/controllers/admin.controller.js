@@ -21,17 +21,27 @@ const SELECT_MUTATION_LIST = {
   logementSouhaite: { select: SELECT_LOGEMENT_MUTATION },
 }
 
+// Un seul aller-retour DB (au lieu de 7 count() séquentiels/parallèles) : on récupère
+// juste la colonne de date sur la fenêtre des 7 derniers mois, puis on répartit en
+// mémoire. Avec un connection_limit=3 côté TiDB, 7 requêtes concurrentes créaient plus
+// de contention sur le pool qu'elles n'en économisaient en aller-retours réseau.
 async function histoMensuel(model, champDate) {
   const now = new Date()
+  const debut = new Date(now.getFullYear(), now.getMonth() - 6, 1)
+  const fin   = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-  return Promise.all(
-    Array.from({ length: 7 }, (_, idx) => {
-      const i = 6 - idx
-      const debut = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const fin   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
-      return model.count({ where: { [champDate]: { gte: debut, lt: fin } } })
-    }),
-  )
+  const rows = await model.findMany({
+    where: { [champDate]: { gte: debut, lt: fin } },
+    select: { [champDate]: true },
+  })
+
+  const counts = new Array(7).fill(0)
+  for (const row of rows) {
+    const d = row[champDate]
+    const idx = (d.getFullYear() - debut.getFullYear()) * 12 + (d.getMonth() - debut.getMonth())
+    if (idx >= 0 && idx < 7) counts[idx]++
+  }
+  return counts
 }
 
 export async function getDashboardStats(_req, res, next) {
@@ -102,19 +112,33 @@ export async function getDashboardStats(_req, res, next) {
 export async function getDemandesMensuelles(_req, res, next) {
   try {
     const now = new Date()
+    const debut = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+    const fin   = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-    const data = await Promise.all(
-      Array.from({ length: 6 }, async (_, idx) => {
-        const i = 5 - idx
-        const debut = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const fin   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
-        const [demandes, tickets] = await Promise.all([
-          prisma.demandeLogement.count({ where: { dateDepot: { gte: debut, lt: fin } } }),
-          prisma.ticketMaintenance.count({ where: { dateDepot: { gte: debut, lt: fin } } }),
-        ])
-        return { mois: MOIS_LABELS[debut.getMonth()], demandes, tickets }
-      }),
-    )
+    // 2 requêtes (une par table) au lieu de 12 (6 mois × 2 count()) : on récupère les
+    // dates brutes sur la fenêtre et on répartit par mois en mémoire.
+    const [demandesRows, ticketsRows] = await Promise.all([
+      prisma.demandeLogement.findMany({ where: { dateDepot: { gte: debut, lt: fin } }, select: { dateDepot: true } }),
+      prisma.ticketMaintenance.findMany({ where: { dateDepot: { gte: debut, lt: fin } }, select: { dateDepot: true } }),
+    ])
+
+    const demandesCounts = new Array(6).fill(0)
+    const ticketsCounts  = new Array(6).fill(0)
+    const bucket = (d) => (d.getFullYear() - debut.getFullYear()) * 12 + (d.getMonth() - debut.getMonth())
+    for (const row of demandesRows) {
+      const idx = bucket(row.dateDepot)
+      if (idx >= 0 && idx < 6) demandesCounts[idx]++
+    }
+    for (const row of ticketsRows) {
+      const idx = bucket(row.dateDepot)
+      if (idx >= 0 && idx < 6) ticketsCounts[idx]++
+    }
+
+    const data = Array.from({ length: 6 }, (_, idx) => ({
+      mois: MOIS_LABELS[new Date(debut.getFullYear(), debut.getMonth() + idx, 1).getMonth()],
+      demandes: demandesCounts[idx],
+      tickets: ticketsCounts[idx],
+    }))
 
     res.json(data)
   } catch (err) {
