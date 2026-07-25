@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { BarChart3, Building2, FileText, Wrench, Download, Menu, AlertTriangle, RefreshCw } from 'lucide-react'
 import api from '../../services/api.js'
 import AdminSidebar from '../../components/admin/AdminSidebar.jsx'
+
+const ActiviteMensuelleBarChart = lazy(() => import('./RapportsAdminCharts.jsx').then(m => ({ default: m.ActiviteMensuelleBarChart })))
 
 const O = '#E8520A'
 const G = '#2E7D32'
@@ -200,16 +201,9 @@ export default function RapportsAdmin() {
             ) : mensuel.every(m => m.demandes === 0 && m.tickets === 0) ? (
               <EmptyState title="Aucune activité enregistrée" subtitle="Les demandes et tickets apparaîtront ici dès leur création." />
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={mensuel} barGap={6}>
-                  <CartesianGrid vertical={false} stroke="#F4F6F9" />
-                  <XAxis dataKey="mois" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                  <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} allowDecimals={false} />
-                  <Tooltip cursor={{ fill: '#F4F6F9' }} contentStyle={{ borderRadius: 12, border: '1px solid #E5E7EB', fontSize: 13 }} />
-                  <Bar dataKey="demandes" name="Demandes logement" fill={O} radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="tickets" name="Tickets maintenance" fill={G} radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<Skeleton className="h-64" />}>
+                <ActiviteMensuelleBarChart data={mensuel} />
+              </Suspense>
             )}
           </div>
         </main>

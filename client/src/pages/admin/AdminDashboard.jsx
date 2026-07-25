@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import {
   Building2, FileText, Wrench,
   Bell,
@@ -9,6 +8,9 @@ import {
 } from 'lucide-react'
 import api from '../../services/api.js'
 import AdminSidebar from '../../components/admin/AdminSidebar.jsx'
+
+const DemandesBarChart = lazy(() => import('./AdminDashboardCharts.jsx').then(m => ({ default: m.DemandesBarChart })))
+const OccupationPieChart = lazy(() => import('./AdminDashboardCharts.jsx').then(m => ({ default: m.OccupationPieChart })))
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const O = '#E8520A'
@@ -367,16 +369,9 @@ export default function AdminDashboard() {
               ) : mensuel.every(m => m.demandes === 0 && m.tickets === 0) ? (
                 <EmptyState title="Aucune activité enregistrée" subtitle="Les demandes et tickets apparaîtront ici dès leur création." />
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={mensuel} barGap={6}>
-                    <CartesianGrid vertical={false} stroke="#F4F6F9" />
-                    <XAxis dataKey="mois" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} allowDecimals={false} />
-                    <Tooltip cursor={{ fill: '#F4F6F9' }} contentStyle={{ borderRadius: 12, border: '1px solid #E5E7EB', fontSize: 13 }} />
-                    <Bar dataKey="demandes" name="Demandes logement" fill={O} radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="tickets" name="Tickets maintenance" fill={G} radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<Skeleton className="h-64" />}>
+                  <DemandesBarChart data={mensuel} />
+                </Suspense>
               )}
             </div>
 
@@ -478,13 +473,9 @@ export default function AdminDashboard() {
               ) : (
                 <>
                   <div className="relative" style={{ height: 200 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={occupationData} dataKey="value" nameKey="name" innerRadius={65} outerRadius={90} paddingAngle={2} startAngle={90} endAngle={-270}>
-                          {occupationData.map(d => <Cell key={d.name} fill={d.color} />)}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <Suspense fallback={<div className="w-full h-full rounded-full bg-gray-100 animate-pulse" />}>
+                      <OccupationPieChart data={occupationData} />
+                    </Suspense>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <p className="text-4xl font-bold text-gray-900">{tauxOccupation}%</p>
                       <p className="text-xs text-gray-400">occupé</p>

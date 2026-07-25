@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import {
   LayoutDashboard, Users, ScrollText, Activity, Zap,
   Building2, FileText, Wrench, CheckCircle, RefreshCw,
@@ -13,6 +12,8 @@ import api from '../../services/api.js'
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const O = '#E8520A'
 const G = '#2E7D32'
+
+const RoleDistributionPieChart = lazy(() => import('./SuperAdminDashboardCharts.jsx').then(m => ({ default: m.RoleDistributionPieChart })))
 
 const ROLE_META = {
   SUPER_ADMIN: { label: 'Super Admin',    color: '#E8520A' },
@@ -984,20 +985,11 @@ function OverviewSection({ health, healthLoading, healthError, onRetry, roleChar
         ) : (
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div style={{ width: '100%', maxWidth: 240, height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={roleChartData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-                    {roleChartData.map((entry) => (
-                      <Cell key={entry.role} fill={ROLE_META[entry.role]?.color || '#94A3B8'} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ background: '#131C31', border: '1px solid #1E2A45', borderRadius: 8, color: '#F1F5F9' }}
-                    labelStyle={{ color: '#F1F5F9' }}
-                    itemStyle={{ color: '#F1F5F9' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<div className="w-full h-full rounded-full bg-[#1E2A45] animate-pulse" />}>
+                <RoleDistributionPieChart
+                  data={roleChartData.map(entry => ({ ...entry, color: ROLE_META[entry.role]?.color || '#94A3B8' }))}
+                />
+              </Suspense>
             </div>
             <div className="flex-1 grid grid-cols-2 gap-2.5 w-full">
               {Object.entries(health.utilisateurs.parRole).map(([role, value]) => (

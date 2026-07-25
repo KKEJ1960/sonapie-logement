@@ -1,9 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import {
-  LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-} from 'recharts'
 import {
   FileText, Clock, CheckCircle, XCircle, ArrowLeftRight, ScrollText,
   Menu, X, Bell, Zap, Eye, Hourglass, BarChart3,
@@ -11,6 +8,10 @@ import {
 } from 'lucide-react'
 import api from '../../services/api.js'
 import DirectionSidebar from '../../components/direction/DirectionSidebar.jsx'
+
+const Sparkline = lazy(() => import('./DirectionDashboardCharts.jsx').then(m => ({ default: m.Sparkline })))
+const RepartitionPieChart = lazy(() => import('./DirectionDashboardCharts.jsx').then(m => ({ default: m.RepartitionPieChart })))
+const DelaiAreaChart = lazy(() => import('./DirectionDashboardCharts.jsx').then(m => ({ default: m.DelaiAreaChart })))
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const O = '#E8520A'
@@ -70,20 +71,6 @@ function EmptyState({ icon: Icon = FileText, title, subtitle }) {
       </div>
       <p className="text-sm font-semibold text-slate-600">{title}</p>
       {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
-    </div>
-  )
-}
-
-function Sparkline({ data, color }) {
-  const chartData = useMemo(() => (data || []).map((v, i) => ({ i, v })), [data])
-  if (!chartData.length) return <div className="h-8" />
-  return (
-    <div className="h-8 -mx-1">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-          <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} />
-        </LineChart>
-      </ResponsiveContainer>
     </div>
   )
 }
@@ -300,28 +287,30 @@ export default function DirectionDashboard() {
               {[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-36" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <KpiCard icon={FileText} iconBg="#FFF4EF" iconColor={O}
-                value={stats.totalDemandes} label="Total demandes"
-                sparkline={<Sparkline data={stats.historique?.demandes} color={O} />} />
-              <KpiCard icon={Clock} iconBg="#EFF6FF" iconColor="#3B82F6"
-                value={stats.demandesParStatut?.SOUMISE ?? 0} label="Nouvelles demandes"
-                sparkline={<Sparkline data={stats.historique?.demandes} color="#3B82F6" />} />
-              <KpiCard icon={Hourglass} iconBg="#FFFBEB" iconColor={O}
-                value={
-                  (stats.demandesParStatut?.EN_VALIDATION_DIRECTION ?? 0)
-                  + (stats.demandesParStatut?.VALIDEE_DIRECTION ?? 0)
-                  + (stats.demandesParStatut?.EN_ETUDE_LOGEMENT ?? 0)
-                }
-                label="En cours de traitement"
-                sparkline={<Sparkline data={stats.historique?.demandes} color={O} />} />
-              <KpiCard icon={CheckCircle} iconBg="#F0FDF4" iconColor={G}
-                value={stats.demandesApprouveesMois ?? 0} label="Traitées ce mois"
-                sparkline={<Sparkline data={stats.historique?.validees} color={G} />} />
-              <KpiCard icon={XCircle} iconBg="#FEF2F2" iconColor="#EF4444"
-                value={stats.demandesRejeteesMois ?? 0} label="Rejetées ce mois"
-                sparkline={<Sparkline data={stats.historique?.rejetees} color="#EF4444" />} />
-            </div>
+            <Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">{[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-36" />)}</div>}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <KpiCard icon={FileText} iconBg="#FFF4EF" iconColor={O}
+                  value={stats.totalDemandes} label="Total demandes"
+                  sparkline={<Sparkline data={stats.historique?.demandes} color={O} />} />
+                <KpiCard icon={Clock} iconBg="#EFF6FF" iconColor="#3B82F6"
+                  value={stats.demandesParStatut?.SOUMISE ?? 0} label="Nouvelles demandes"
+                  sparkline={<Sparkline data={stats.historique?.demandes} color="#3B82F6" />} />
+                <KpiCard icon={Hourglass} iconBg="#FFFBEB" iconColor={O}
+                  value={
+                    (stats.demandesParStatut?.EN_VALIDATION_DIRECTION ?? 0)
+                    + (stats.demandesParStatut?.VALIDEE_DIRECTION ?? 0)
+                    + (stats.demandesParStatut?.EN_ETUDE_LOGEMENT ?? 0)
+                  }
+                  label="En cours de traitement"
+                  sparkline={<Sparkline data={stats.historique?.demandes} color={O} />} />
+                <KpiCard icon={CheckCircle} iconBg="#F0FDF4" iconColor={G}
+                  value={stats.demandesApprouveesMois ?? 0} label="Traitées ce mois"
+                  sparkline={<Sparkline data={stats.historique?.validees} color={G} />} />
+                <KpiCard icon={XCircle} iconBg="#FEF2F2" iconColor="#EF4444"
+                  value={stats.demandesRejeteesMois ?? 0} label="Rejetées ce mois"
+                  sparkline={<Sparkline data={stats.historique?.rejetees} color="#EF4444" />} />
+              </div>
+            </Suspense>
           )}
 
           {/* ── Section 2 : Flux des demandes ─────────────────────────────── */}
@@ -474,14 +463,9 @@ export default function DirectionDashboard() {
               ) : (
                 <>
                   <div className="relative" style={{ height: 190 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={repartitionType.data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={82} paddingAngle={2}>
-                          {repartitionType.data.map(d => <Cell key={d.name} fill={d.color} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <Suspense fallback={<div className="w-full h-full rounded-full bg-gray-100 animate-pulse" />}>
+                      <RepartitionPieChart data={repartitionType.data} />
+                    </Suspense>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <p className="text-3xl font-bold text-gray-900">{repartitionType.total}</p>
                       <p className="text-xs text-gray-400">Total</p>
@@ -543,17 +527,9 @@ export default function DirectionDashboard() {
               ) : areaData.every(p => p.v === 0) ? (
                 <EmptyState icon={BarChart3} title="Pas encore assez de données" subtitle="L'activité récente apparaîtra ici." />
               ) : (
-                <ResponsiveContainer width="100%" height={110}>
-                  <AreaChart data={areaData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="dirAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={O} stopOpacity={0.25} />
-                        <stop offset="100%" stopColor={O} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="v" stroke={O} strokeWidth={2} fill="url(#dirAreaGradient)" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<Skeleton className="h-28" />}>
+                  <DelaiAreaChart data={areaData} color={O} />
+                </Suspense>
               )}
             </div>
           </motion.div>

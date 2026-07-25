@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { BarChart3, Menu, AlertTriangle, RefreshCw, TrendingUp, Clock3, Users } from 'lucide-react'
 import api from '../../services/api.js'
 import DirectionSidebar from '../../components/direction/DirectionSidebar.jsx'
+
+const ValideesRejeteesBarChart = lazy(() => import('./RapportsDirectionCharts.jsx').then(m => ({ default: m.ValideesRejeteesBarChart })))
 
 const O = '#E8520A'
 const G = '#2E7D32'
@@ -174,17 +175,9 @@ export default function RapportsDirection() {
                 {!hasMonthlyData ? (
                   <EmptyState title="Pas encore assez de données" subtitle="Les décisions de la Direction apparaîtront ici au fil du temps." />
                 ) : (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={monthlyData} barGap={6}>
-                      <CartesianGrid vertical={false} stroke="#F4F6F9" />
-                      <XAxis dataKey="mois" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#94A3B8' }} allowDecimals={false} />
-                      <Tooltip cursor={{ fill: '#F4F6F9' }} contentStyle={{ borderRadius: 12, border: '1px solid #E5E7EB', fontSize: 13 }} />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="validées" fill={G} radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="rejetées" fill="#EF4444" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <Suspense fallback={<Skeleton className="h-64" />}>
+                    <ValideesRejeteesBarChart data={monthlyData} />
+                  </Suspense>
                 )}
               </div>
             </>
