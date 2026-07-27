@@ -200,6 +200,20 @@ export async function approuverDemande(req, res, next) {
       return res.status(400).json({ message: "Ce logement n'est pas disponible." })
     }
 
+    // Plusieurs demandeurs peuvent viser le même logement avant son attribution.
+    // Une fois attribué ici, toutes les autres demandes encore actives sur ce même
+    // logement doivent être closes automatiquement — sinon elles restent bloquées
+    // indéfiniment dans le pipeline sans que personne ne sache que ce logement précis
+    // n'est plus disponible pour elles.
+    const demandesConcurrentes = await prisma.demandeLogement.findMany({
+      where: {
+        logementId: logement.id,
+        id: { not: id },
+        statut: { in: ['SOUMISE', 'EN_VALIDATION_DIRECTION', 'VALIDEE_DIRECTION', 'EN_ETUDE_LOGEMENT'] },
+      },
+      select: { id: true, demandeurId: true },
+    })
+
     const [updated] = await prisma.$transaction([
       prisma.demandeLogement.update({
         where: { id },
@@ -222,6 +236,17 @@ export async function approuverDemande(req, res, next) {
           actif: true,
         },
       }),
+      ...(demandesConcurrentes.length
+        ? [prisma.demandeLogement.updateMany({
+            where: { id: { in: demandesConcurrentes.map(d => d.id) } },
+            data: {
+              statut: 'REJETEE',
+              traitePar: req.user.id,
+              dateTraitement: new Date(),
+              commentaire: `Logement attribué à un autre demandeur (demande #${id}).`,
+            },
+          })]
+        : []),
     ])
 
     await Promise.allSettled([
@@ -235,6 +260,11 @@ export async function approuverDemande(req, res, next) {
         `Nouvelle attribution : ${updated.demandeur?.prenom} ${updated.demandeur?.nom} → logement ${logement.code}. Prenez contact avec le locataire.`,
         'INFO',
       ),
+      ...demandesConcurrentes.map(d => creerNotification({
+        utilisateurId: d.demandeurId,
+        message: `Le logement ${logement.code} que vous aviez demandé a été attribué à un autre demandeur. Vous pouvez soumettre une nouvelle demande pour un autre logement disponible.`,
+        type: 'WARNING',
+      })),
     ])
 
     res.json(updated)
