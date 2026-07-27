@@ -1,0 +1,18 @@
+name: Keep Render backend awake
+
+on:
+  schedule:
+    # Toutes les 10 minutes : sous la fenêtre d'inactivité (~15 min) qui déclenche
+    # la mise en veille du plan gratuit Render.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/health
+        # --max-time large pour couvrir un éventuel cold start (jusqu'à 50s+ selon
+        # Render) sans faire échouer le job : le but est justement de réveiller
+        # le serveur s'il s'est mis en veille malgré les pings précédents.
+        run: curl -sf --max-time 60 https://sonapie-logement.onrender.com/api/health
