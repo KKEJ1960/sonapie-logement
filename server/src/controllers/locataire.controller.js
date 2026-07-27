@@ -104,12 +104,16 @@ export async function creerDemandeLogement(req, res, next) {
       select: SEL_DEMANDE,
     })
 
-    // Pas de notification à la Direction ici : à ce stade, aucun dossier
-    // n'existe encore (le locataire n'a rien constitué), donc rien ne serait
-    // trouvable dans "Dossiers clients" — la Direction n'a plus de page dédiée
-    // aux demandes brutes depuis la simplification du workflow. La notification
-    // pertinente est envoyée dans soumetteDossier(), une fois qu'il y a
-    // effectivement un dossier à examiner.
+    // La demande est déjà EN_VALIDATION_DIRECTION à ce stade (validerDemande/
+    // rejeterDemande peuvent agir dessus immédiatement, dossier ou non) : la
+    // Direction doit donc être notifiée dès maintenant, pas seulement à la
+    // soumission du dossier complet (soumetteDossier envoie sa propre notif
+    // à ce moment-là, sur un événement distinct).
+    notifierRoles(
+      ['DIRECTION'],
+      `Nouvelle demande de logement #${updated.id} soumise par ${req.user.email}.`,
+      'INFO',
+    ).catch(() => {})
 
     res.status(201).json(updated)
   } catch (err) {
